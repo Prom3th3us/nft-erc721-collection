@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: MIT
 
+import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
 pragma solidity >=0.8.9 <0.9.0;
 
 library LibToken {
   using Strings for uint256;
+  using Counters for Counters.Counter;
 
   struct Program {
+    // base
+    uint256 maxSupply;
+    Counters.Counter supply;
     // proof
     bytes32 merkleRoot;
     // metadata
@@ -23,7 +29,7 @@ library LibToken {
     bool revealed;
   }
   
-  function defaultProgram() pure  internal returns (Program memory) {
+  function defaultProgram() pure internal returns (Program memory) {
     Program memory program;
     program.uriPrefix = "";
     program.uriSuffix = ".json";
@@ -32,11 +38,13 @@ library LibToken {
   }
   
   function initProgram(
+    uint256 _maxSupply,
     uint256 _cost,
     uint256 _maxMintAmountPerTx,
     string memory _hiddenMetadataUri
   ) internal pure returns (Program memory) {
-    Program memory program;
+    Program memory program = defaultProgram();
+    program.maxSupply = _maxSupply;
     program.cost = _cost;
     program.maxMintAmountPerTx = _maxMintAmountPerTx;
     program.hiddenMetadataUri = _hiddenMetadataUri;
@@ -55,5 +63,14 @@ library LibToken {
     return bytes(currentBaseURI).length > 0
         ? string(abi.encodePacked(currentBaseURI, _tokenId.toString(), program.uriSuffix))
         : "";
+  }
+
+  function verifyMerkleProof(
+    Program storage program,
+    bytes32[] calldata _merkleProof,
+    address caller
+  ) internal view returns (bool) {
+    bytes32 leaf = keccak256(abi.encodePacked(caller));
+    return MerkleProof.verify(_merkleProof, program.merkleRoot, leaf);
   }
 }
