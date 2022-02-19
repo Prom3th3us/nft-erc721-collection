@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract YourNftToken is ERC721, Ownable, ReentrancyGuard {
+contract Prom3theusToken is ERC721, Ownable, ReentrancyGuard {
 
   using Strings for uint256;
   using Counters for Counters.Counter;
@@ -59,7 +59,10 @@ contract YourNftToken is ERC721, Ownable, ReentrancyGuard {
     return supply.current();
   }
 
-  function whitelistMint(uint256 _mintAmount, bytes32[] calldata _merkleProof) public payable mintCompliance(_mintAmount) mintPriceCompliance(_mintAmount) {
+  function whitelistMint(
+    uint256 _mintAmount,
+    bytes32[] calldata _merkleProof
+  ) public payable mintCompliance(_mintAmount) mintPriceCompliance(_mintAmount) {
     // Verify whitelist requirements
     require(whitelistMintEnabled, "The whitelist sale is not enabled!");
     require(!whitelistClaimed[msg.sender], "Address already claimed!");
@@ -70,13 +73,18 @@ contract YourNftToken is ERC721, Ownable, ReentrancyGuard {
     _mintLoop(msg.sender, _mintAmount);
   }
 
-  function mint(uint256 _mintAmount) public payable mintCompliance(_mintAmount) mintPriceCompliance(_mintAmount) {
+  function mint(
+    uint256 _mintAmount
+  ) public payable mintCompliance(_mintAmount) mintPriceCompliance(_mintAmount) {
     require(!paused, "The contract is paused!");
 
     _mintLoop(msg.sender, _mintAmount);
   }
   
-  function mintForAddress(uint256 _mintAmount, address _receiver) public mintCompliance(_mintAmount) onlyOwner {
+  function mintForAddress(
+    uint256 _mintAmount,
+    address _receiver
+  ) public mintCompliance(_mintAmount) onlyOwner {
     _mintLoop(_receiver, _mintAmount);
   }
 
@@ -164,18 +172,22 @@ contract YourNftToken is ERC721, Ownable, ReentrancyGuard {
   }
 
   function withdraw() public onlyOwner nonReentrant {
-    // This will pay HashLips Lab Team 5% of the initial sale.
+    // This will pay Prom3theus Lab Team 5% of the initial sale.
     // By leaving the following lines as they are you will contribute to the
     // development of tools like this and many others.
     // =============================================================================
-    (bool hs, ) = payable(0x146FB9c3b2C13BA88c6945A759EbFa95127486F4).call{value: address(this).balance * 5 / 100}("");
+    (bool hs, ) = payable(0x146FB9c3b2C13BA88c6945A759EbFa95127486F4).call{
+      value: address(this).balance * 5 / 100
+    }("");
     require(hs);
     // =============================================================================
 
     // This will transfer the remaining contract balance to the owner.
     // Do not remove this otherwise you will not be able to withdraw the funds.
     // =============================================================================
-    (bool os, ) = payable(owner()).call{value: address(this).balance}("");
+    (bool os, ) = payable(owner()).call{
+      value: address(this).balance
+    }("");
     require(os);
     // =============================================================================
   }
