@@ -37,4 +37,6 @@ run `yarn install` inside both `mintin-dapp` and `smart-contract`
 ## Useful commands
 ```
 npx hardhat compile
+npx hardhat clean
+npx hardhat test
 ```

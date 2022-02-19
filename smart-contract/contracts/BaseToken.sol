@@ -9,7 +9,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./LibToken.sol";
 
-contract BaseToken is ERC721, Ownable, ReentrancyGuard {
+// @TODO: replace Ownable for AccessControl if needed
+abstract contract BaseToken is ERC721, Ownable, ReentrancyGuard {
   using Counters for Counters.Counter;
   using LibToken for LibToken.Program;
 
@@ -144,6 +145,7 @@ contract BaseToken is ERC721, Ownable, ReentrancyGuard {
     program.whitelistMintEnabled = _state;
   }
 
+  // @TODO: create wallet abstraction
   function withdraw() public onlyOwner nonReentrant {
     // This will pay Prom3theus Lab Team 5% of the initial sale.
     // By leaving the following lines as they are you will contribute to the
