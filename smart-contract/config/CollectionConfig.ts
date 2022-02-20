@@ -6,8 +6,8 @@ const CollectionConfig: CollectionConfigInterface = {
   // yarn rename-contract NEW_CONTRACT_NAME
   // Please DO NOT change it manually!
   contractName: 'Prom3theusToken',
-  tokenName: 'My NFT Token',
-  tokenSymbol: 'MNT',
+  tokenName: 'Prom3theus Token',
+  tokenSymbol: 'PROM3',
   hiddenMetadataUri: 'ipfs://__CID__/hidden.json',
   maxSupply: 10000,
   whitelistSale: {

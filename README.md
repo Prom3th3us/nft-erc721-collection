@@ -35,8 +35,4 @@ This project was created for educational purposes, please refer to the [LICENCE]
 run `yarn install` inside both `mintin-dapp` and `smart-contract`
 
 ## Useful commands
-```
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-```
+look under package.json scripts inside both `mintin-dapp` and `smart-contract`
