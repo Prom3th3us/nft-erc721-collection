@@ -35,3 +35,20 @@ run `yarn install` inside both `mintin-dapp` and `smart-contract`
 
 ## Useful commands
 look under package.json scripts inside both `mintin-dapp` and `smart-contract`
+
+## Deployment: testnet
+0/ setup:
+  - infura account
+  - etherscan account
+  - metamask wallet
+  - upload files to pinata
+1/ configure .env file
+2/ deploy contract to testnet
+  - `yarn deploy --network testnet`
+  - get <contract_address> from terminal
+3/ verify deployed contract
+  -  update CollectionConfig.ts contractAddress using obtained above
+  - `yarn verify <contract_address> --network testnet`
+
+## Run mintindapp
+`yarn dev-server`

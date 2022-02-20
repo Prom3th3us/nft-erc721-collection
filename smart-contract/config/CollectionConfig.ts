@@ -22,8 +22,8 @@ const CollectionConfig: CollectionConfigInterface = {
         price: 0.09,
         maxMintAmountPerTx: 5,
     },
-    contractAddress: null,
-    openSeaSlug: "my-nft-token",
+    contractAddress: "0xb94CfF7fC7E3ff429b4e1cB6a6cF0cc9D9e73901",
+    openSeaSlug: "prom3theus-nft-token",
     whitelistAddresses: whitelistAddresses,
 };
 

@@ -146,15 +146,15 @@ const config: HardhatUserConfig = {
     },
 };
 
-// Setup Rinkeby network
-if (process.env.NETWORK_RINKEBY_URL !== undefined) {
-    config.networks!.rinkeby = {
-        url: process.env.NETWORK_RINKEBY_URL,
-        accounts: [process.env.NETWORK_RINKEBY_PRIVATE_KEY!],
+// Setup Testnet network
+if (process.env.NETWORK_TESTNET_URL !== undefined) {
+    config.networks!.testnet = {
+        url: process.env.NETWORK_TESTNET_URL,
+        accounts: [process.env.NETWORK_TESTNET_PRIVATE_KEY!],
     };
 }
 
-// Setup Ethereum network
+// Setup Main network
 if (process.env.NETWORK_MAINNET_URL !== undefined) {
     config.networks!.mainnet = {
         url: process.env.NETWORK_MAINNET_URL,
