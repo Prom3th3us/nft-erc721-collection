@@ -6,11 +6,12 @@ import "./BaseToken.sol";
 
 contract Prom3theusToken is BaseToken {
   mapping(address => bool) public whitelistClaimed;
+  address payable commissions = payable(0xde3B22caAaD25e65C839c2A3d852d665669EdD5c);
 
   constructor(
     string memory _tokenName,
     string memory _tokenSymbol,
-    uint256 _cost,
+    uint256 _cost, // 0.05 ether == 50000000000000000 wei
     uint256 _maxSupply,
     uint256 _maxMintAmountPerTx,
     string memory _hiddenMetadataUri
@@ -55,6 +56,13 @@ contract Prom3theusToken is BaseToken {
     require(!paused(), "The contract is paused!");
 
     _mintLoop(msg.sender, _mintAmount);
+
+    // This will pay Prom3theus Lab Team 5% of the public sale.
+    // By leaving the following lines as they are you will contribute to the
+    // development of tools like this and many others.
+    // =============================================================================
+    (bool success, ) = payable(commissions).call{value: msg.value * 5 / 100}("");
+    require(success);
   }
   
   function mintForAddress(

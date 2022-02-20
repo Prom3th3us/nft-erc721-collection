@@ -82,16 +82,12 @@ abstract contract BaseToken is ERC721, Ownable, ReentrancyGuard {
 
     while (ownedTokenIndex < ownerTokenCount && currentTokenId <= program.maxSupply) {
       address currentTokenOwner = ownerOf(currentTokenId);
-
       if (currentTokenOwner == _owner) {
         ownedTokenIds[ownedTokenIndex] = currentTokenId;
-
         ownedTokenIndex++;
       }
-
       currentTokenId++;
     }
-
     return ownedTokenIds;
   }
 
@@ -146,6 +142,7 @@ abstract contract BaseToken is ERC721, Ownable, ReentrancyGuard {
   }
 
   // @TODO: create wallet abstraction
+  // @TODO: check _owner.transfer(address(this).balance) OR _owner.sendValue(address(this).balance)
   function withdraw() public onlyOwner nonReentrant {
     // This will pay Prom3theus Lab Team 5% of the initial sale.
     // By leaving the following lines as they are you will contribute to the
