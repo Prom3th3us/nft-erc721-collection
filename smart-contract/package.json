@@ -37,6 +37,7 @@
     "typescript": "^4.5.4"
   },
   "scripts": {
+    "prettier": "prettier --write '**/*.{sol,js,ts}'",
     "accounts": "hardhat accounts",
     "rename-contract": "hardhat rename-contract",
     "compile": "hardhat compile",

@@ -7,70 +7,78 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 pragma solidity >=0.8.9 <0.9.0;
 
 library LibToken {
-  using Strings for uint256;
-  using Counters for Counters.Counter;
+    using Strings for uint256;
+    using Counters for Counters.Counter;
 
-  struct Program {
-    // base
-    uint256 maxSupply;
-    Counters.Counter supply;
-    // proof
-    bytes32 merkleRoot;
-    // metadata
-    string uriPrefix;
-    string uriSuffix;
-    string hiddenMetadataUri;
-    // price
-    uint256 cost;
-    uint256 maxMintAmountPerTx;
-    // flags
-    bool paused;
-    bool whitelistMintEnabled;
-    bool revealed;
-  }
-  
-  function defaultProgram() pure internal returns (Program memory) {
-    Program memory program;
-    program.uriPrefix = "";
-    program.uriSuffix = ".json";
-    program.paused = true;
-    return program;
-  }
-  
-  function initProgram(
-    uint256 _maxSupply,
-    uint256 _cost,
-    uint256 _maxMintAmountPerTx,
-    string memory _hiddenMetadataUri
-  ) internal pure returns (Program memory) {
-    Program memory program = defaultProgram();
-    program.maxSupply = _maxSupply;
-    program.cost = _cost;
-    program.maxMintAmountPerTx = _maxMintAmountPerTx;
-    program.hiddenMetadataUri = _hiddenMetadataUri;
-    return program;
-  }
-
-  function tokenURI(
-    Program storage program,
-    uint256 _tokenId
-  ) internal view returns (string memory) {
-    if (program.revealed == false) {
-      return program.hiddenMetadataUri;
+    struct Program {
+        // base
+        uint256 maxSupply;
+        Counters.Counter supply;
+        // proof
+        bytes32 merkleRoot;
+        // metadata
+        string uriPrefix;
+        string uriSuffix;
+        string hiddenMetadataUri;
+        // price
+        uint256 cost;
+        uint256 maxMintAmountPerTx;
+        // flags
+        bool paused;
+        bool whitelistMintEnabled;
+        bool revealed;
     }
 
-    string memory currentBaseURI = program.uriPrefix;
-    return bytes(currentBaseURI).length > 0
-        ? string(abi.encodePacked(currentBaseURI, _tokenId.toString(), program.uriSuffix))
-        : "";
-  }
+    function defaultProgram() internal pure returns (Program memory) {
+        Program memory program;
+        program.uriPrefix = "";
+        program.uriSuffix = ".json";
+        program.paused = true;
+        return program;
+    }
 
-  function verifyMerkleProof(
-    Program storage program,
-    bytes32[] calldata _merkleProof,
-    address caller
-  ) internal view returns (bool) {
-    bytes32 leaf = keccak256(abi.encodePacked(caller));
-    return MerkleProof.verify(_merkleProof, program.merkleRoot, leaf);
-  }
+    function initProgram(
+        uint256 _maxSupply,
+        uint256 _cost,
+        uint256 _maxMintAmountPerTx,
+        string memory _hiddenMetadataUri
+    ) internal pure returns (Program memory) {
+        Program memory program = defaultProgram();
+        program.maxSupply = _maxSupply;
+        program.cost = _cost;
+        program.maxMintAmountPerTx = _maxMintAmountPerTx;
+        program.hiddenMetadataUri = _hiddenMetadataUri;
+        return program;
+    }
+
+    function tokenURI(Program storage program, uint256 _tokenId)
+        internal
+        view
+        returns (string memory)
+    {
+        if (program.revealed == false) {
+            return program.hiddenMetadataUri;
+        }
+
+        string memory currentBaseURI = program.uriPrefix;
+        return
+            bytes(currentBaseURI).length > 0
+                ? string(
+                    abi.encodePacked(
+                        currentBaseURI,
+                        _tokenId.toString(),
+                        program.uriSuffix
+                    )
+                )
+                : "";
+    }
+
+    function verifyMerkleProof(
+        Program storage program,
+        bytes32[] calldata _merkleProof,
+        address caller
+    ) internal view returns (bool) {
+        bytes32 leaf = keccak256(abi.encodePacked(caller));
+        return MerkleProof.verify(_merkleProof, program.merkleRoot, leaf);
+    }
 }
