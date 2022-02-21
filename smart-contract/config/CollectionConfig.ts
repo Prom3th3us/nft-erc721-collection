@@ -1,6 +1,7 @@
 import CollectionConfigInterface from "../lib/CollectionConfigInterface";
 import whitelistAddresses from "./whitelist.json";
 
+// @TODO automate contract address using abi + contract network
 const CollectionConfig: CollectionConfigInterface = {
     // The contract name can be updated using the following command:
     // yarn rename-contract NEW_CONTRACT_NAME

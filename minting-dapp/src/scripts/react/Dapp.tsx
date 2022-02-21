@@ -177,6 +177,114 @@ export default class Dapp extends React.Component<Props, State> {
     });
   }
 
+  private setError(error: any = null): void {
+    let errorMessage = "Unknown error...";
+
+    if (null === error || typeof error === "string") {
+      errorMessage = error;
+    } else if (typeof error === "object") {
+      // Support any type of error from the Web3 Provider...
+      if (error?.error?.message !== undefined) {
+        errorMessage = error.error.message;
+      } else if (error?.data?.message !== undefined) {
+        errorMessage = error.data.message;
+      } else if (error?.message !== undefined) {
+        errorMessage = error.message;
+      }
+    }
+
+    this.setState({
+      errorMessage:
+        null === errorMessage
+          ? null
+          : errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1),
+    });
+  }
+
+  private generateEtherscanUrl(): string {
+    return `https://${
+      this.state.network?.chainId === 1 || !this.state.network?.name
+        ? "www"
+        : this.state.network.name
+    }.etherscan.io/address/${CollectionConfig.contractAddress}`;
+  }
+
+  private generateOpenSeaUrl(): string {
+    const subdomain = this.state.network?.chainId === 1 ? "www" : "testnets";
+
+    return (
+      `https://${subdomain}.opensea.io/` +
+      (CollectionConfig.openSeaSlug
+        ? "collection/" + CollectionConfig.openSeaSlug
+        : null)
+    );
+  }
+
+  private async connectWallet(): Promise<void> {
+    try {
+      await this.provider.provider.request!({ method: "eth_requestAccounts" });
+
+      this.initWallet();
+    } catch (e) {
+      this.setError(e);
+    }
+  }
+
+  private async initWallet(): Promise<void> {
+    const walletAccounts = await this.provider.listAccounts();
+
+    this.setState(defaultState);
+
+    if (walletAccounts.length === 0) {
+      return;
+    }
+
+    this.setState({
+      userAddress: walletAccounts[0],
+      network: await this.provider.getNetwork(),
+    });
+
+    if (
+      (await this.provider.getCode(CollectionConfig.contractAddress!)) === "0x"
+    ) {
+      this.setState({
+        errorMessage:
+          "Could not find the contract, are you connected to the right chain?",
+      });
+
+      return;
+    }
+
+    this.contract = new ethers.Contract(
+      CollectionConfig.contractAddress!,
+      ContractAbi,
+      this.provider.getSigner()
+    ) as NftContractType;
+
+    this.setState({
+      maxSupply: (await this.contract.maxSupply()).toNumber(),
+      totalSupply: (await this.contract.totalSupply()).toNumber(),
+      maxMintAmountPerTx: (await this.contract.maxMintAmountPerTx()).toNumber(),
+      tokenPrice: await this.contract.cost(),
+      isPaused: await this.contract.paused(),
+      isWhitelistMintEnabled: await this.contract.whitelistMintEnabled(),
+      isUserInWhitelist: Whitelist.contains(this.state.userAddress ?? ""),
+      etherscanUrl: this.generateEtherscanUrl(),
+    });
+  }
+
+  private registerWalletEvents(browserProvider: ExternalProvider): void {
+    // @ts-ignore
+    browserProvider.on("accountsChanged", () => {
+      this.initWallet();
+    });
+
+    // @ts-ignore
+    browserProvider.on("chainChanged", () => {
+      window.location.reload();
+    });
+  }
+
   render() {
     return (
       <>
@@ -336,113 +444,5 @@ export default class Dapp extends React.Component<Props, State> {
         ) : null}
       </>
     );
-  }
-
-  private setError(error: any = null): void {
-    let errorMessage = "Unknown error...";
-
-    if (null === error || typeof error === "string") {
-      errorMessage = error;
-    } else if (typeof error === "object") {
-      // Support any type of error from the Web3 Provider...
-      if (error?.error?.message !== undefined) {
-        errorMessage = error.error.message;
-      } else if (error?.data?.message !== undefined) {
-        errorMessage = error.data.message;
-      } else if (error?.message !== undefined) {
-        errorMessage = error.message;
-      }
-    }
-
-    this.setState({
-      errorMessage:
-        null === errorMessage
-          ? null
-          : errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1),
-    });
-  }
-
-  private generateEtherscanUrl(): string {
-    return `https://${
-      this.state.network?.chainId === 1 || !this.state.network?.name
-        ? "www"
-        : this.state.network.name
-    }.etherscan.io/address/${CollectionConfig.contractAddress}`;
-  }
-
-  private generateOpenSeaUrl(): string {
-    const subdomain = this.state.network?.chainId === 1 ? "www" : "testnets";
-
-    return (
-      `https://${subdomain}.opensea.io/` +
-      (CollectionConfig.openSeaSlug
-        ? "collection/" + CollectionConfig.openSeaSlug
-        : null)
-    );
-  }
-
-  private async connectWallet(): Promise<void> {
-    try {
-      await this.provider.provider.request!({ method: "eth_requestAccounts" });
-
-      this.initWallet();
-    } catch (e) {
-      this.setError(e);
-    }
-  }
-
-  private async initWallet(): Promise<void> {
-    const walletAccounts = await this.provider.listAccounts();
-
-    this.setState(defaultState);
-
-    if (walletAccounts.length === 0) {
-      return;
-    }
-
-    this.setState({
-      userAddress: walletAccounts[0],
-      network: await this.provider.getNetwork(),
-    });
-
-    if (
-      (await this.provider.getCode(CollectionConfig.contractAddress!)) === "0x"
-    ) {
-      this.setState({
-        errorMessage:
-          "Could not find the contract, are you connected to the right chain?",
-      });
-
-      return;
-    }
-
-    this.contract = new ethers.Contract(
-      CollectionConfig.contractAddress!,
-      ContractAbi,
-      this.provider.getSigner()
-    ) as NftContractType;
-
-    this.setState({
-      maxSupply: (await this.contract.maxSupply()).toNumber(),
-      totalSupply: (await this.contract.totalSupply()).toNumber(),
-      maxMintAmountPerTx: (await this.contract.maxMintAmountPerTx()).toNumber(),
-      tokenPrice: await this.contract.cost(),
-      isPaused: await this.contract.paused(),
-      isWhitelistMintEnabled: await this.contract.whitelistMintEnabled(),
-      isUserInWhitelist: Whitelist.contains(this.state.userAddress ?? ""),
-      etherscanUrl: this.generateEtherscanUrl(),
-    });
-  }
-
-  private registerWalletEvents(browserProvider: ExternalProvider): void {
-    // @ts-ignore
-    browserProvider.on("accountsChanged", () => {
-      this.initWallet();
-    });
-
-    // @ts-ignore
-    browserProvider.on("chainChanged", () => {
-      window.location.reload();
-    });
   }
 }
