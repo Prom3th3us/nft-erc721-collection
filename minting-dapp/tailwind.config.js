@@ -1,10 +1,8 @@
-const colors = require('tailwindcss/colors');
+const colors = require("tailwindcss/colors");
 
 module.exports = {
-    mode: 'jit',
-    content: [
-        './src/**/*.tsx',
-    ],
+    mode: "jit",
+    content: ["./src/**/*.tsx"],
     theme: {
         extend: {},
         colors: {
@@ -16,8 +14,8 @@ module.exports = {
             warningtxt: colors.black,
             error: colors.red,
             errortxt: colors.white,
-        }
+        },
     },
     variants: {},
     plugins: [],
-}
+};

@@ -410,11 +410,9 @@ describe(CollectionConfig.contractName, function () {
 
         // Try to mint over max supply
         await expect(
-            contract
-                .connect(holder)
-                .mint(lastMintAmount + 1, {
-                    value: getPrice(SaleType.PUBLIC_SALE, lastMintAmount + 1),
-                })
+            contract.connect(holder).mint(lastMintAmount + 1, {
+                value: getPrice(SaleType.PUBLIC_SALE, lastMintAmount + 1),
+            })
         ).to.be.revertedWith("Max supply exceeded!");
 
         expect(await contract.totalSupply()).to.equal(expectedTotalSupply);
