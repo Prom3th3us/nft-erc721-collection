@@ -1,18 +1,13 @@
 import "../styles/main.scss";
 
 import ReactDOM from "react-dom";
-import ReduxDapp from "./redux/ReduxDapp";
+import App from "./react/context/dapp";
 import Dapp from "./react/Dapp";
-import store from "./redux/app/store";
-import { Provider } from 'react-redux';
-
 
 document.addEventListener("DOMContentLoaded", async () => {
   ReactDOM.render(
-    // <Provider store={store}>
-    //   <ReduxDapp />
-    // </Provider>,
-    <Dapp />,
+    // <Dapp />,
+    <App />,
     document.getElementById("minting-dapp")
   );
 });
