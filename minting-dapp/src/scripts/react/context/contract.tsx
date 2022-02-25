@@ -5,6 +5,7 @@ import CollectionConfig from "../../../../../smart-contract/config/CollectionCon
 import { useMetamask } from "./metamask";
 import Whitelist from "../../lib/Whitelist";
 import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
+import { ErrorMsg } from "./commons";
 
 interface ContractContext {
   contract: NftContractType | null;
@@ -60,37 +61,48 @@ export const ContractProvider: FC = ({ children }) => {
     initialState.isUserInWhitelist
   );
 
-  const effect = useCallback(async (provider: Web3Provider) => {
-    if (
-      (await provider.getCode(CollectionConfig.contractAddress!)) === "0x"
-    ) {
-      setErrorMsg(
-        "Could not find the contract, are you connected to the right chain?"
-      );
-      return;
+  const createContract: (p: Web3Provider) => NftContractType =
+    provider => {
+      const contractRef = new ethers.Contract(
+        address,
+        ContractAbi,
+        provider.getSigner()
+      ) as NftContractType;
+  
+      setContract(contractRef);
+      return contractRef;
     }
 
-    const contractRef = new ethers.Contract(
-      address,
-      ContractAbi,
-      provider.getSigner()
-    ) as NftContractType;
-
-    setContract(contractRef);
-
-    setMaxSupply((await contractRef.maxSupply()).toNumber());
-    setTotalSupply((await contractRef.totalSupply()).toNumber());
-    setMaxMintAmountPerTx((await contractRef.maxMintAmountPerTx()).toNumber());
-    setTokenPrice(await contractRef.cost());
-    setIsPaused(await contractRef.paused());
-    setIsWhitelistMintEnabled(await contractRef.whitelistMintEnabled());
-    setIsUserInWhitelist(Whitelist.contains(userAddress ?? "")); 
-  }, []);
+  const effect = useCallback(async (provider: Web3Provider) => {
+    try {
+      if (
+        (await provider.getCode(CollectionConfig.contractAddress!)) === "0x"
+      ) {
+        setErrorMsg(
+          "Could not find the contract, are you connected to the right chain?"
+        );
+        return;
+      }
+      
+      const contractRef = createContract(provider);
+  
+      setMaxSupply((await contractRef.maxSupply()).toNumber());
+      setTotalSupply((await contractRef.totalSupply()).toNumber());
+      setMaxMintAmountPerTx((await contractRef.maxMintAmountPerTx()).toNumber());
+      setTokenPrice(await contractRef.cost());
+      setIsPaused(await contractRef.paused());
+      setIsWhitelistMintEnabled(await contractRef.whitelistMintEnabled());
+      setIsUserInWhitelist(Whitelist.contains(userAddress ?? "")); 
+    } catch (e) {
+      setErrorMsg(ErrorMsg(e));
+    }
+  }, [metamask]);
 
   useEffect(() => {
-    if(!metamask) return;
-    effect(metamask);
-  }, []);
+    if(metamask !== null) {
+      effect(metamask);
+    }
+  }, [metamask]);
 
   return (
     <ContractContext.Provider

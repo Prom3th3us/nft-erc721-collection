@@ -37,7 +37,7 @@ export const MetamaskProvider: FC = ({ children }) => {
   const [etherscanUrl, setEtherscanUrl] = useState(initialState.etherscanUrl);
   const [errorMessage, setErrorMessage] = useState(initialState.errorMessage);
 
-  const setErrorMsg: (s: string | null) => void = (s) => setErrorMessage(s);
+  const setErrorMsgFn: (s: string | null) => void = (s) => setErrorMessage(s);
 
   const generateEtherscanUrl: () => string = () => {
     return `https://${
@@ -61,28 +61,30 @@ export const MetamaskProvider: FC = ({ children }) => {
 
   const initWallet: (p: Web3Provider) => Promise<void> = 
     async (provider: Web3Provider) => {
+      try {
+        await provider.provider.request!({ method: "eth_requestAccounts" });
+        const walletAccounts = await provider.listAccounts();
 
-      await provider.provider.request!({ method: "eth_requestAccounts" });
+        if (walletAccounts.length === 0) {
+          return;
+        }
 
-      const walletAccounts = await provider.listAccounts();
-
-      if (walletAccounts.length === 0) {
-        return;
+        setUserAddress(walletAccounts[0]);
+        setNetwork(await provider.getNetwork());
+        setEtherscanUrl(generateEtherscanUrl());
+      } catch(e) {
+        setErrorMessage(ErrorMsg(e));
       }
-
-      setUserAddress(walletAccounts[0]);
-      setNetwork(await provider.getNetwork());
-      setEtherscanUrl(generateEtherscanUrl());
     };
 
-  const connectWallet: () => Promise<void> = async () => {
+  const connectWalletFn: () => Promise<void> = useCallback(async () => {
     try {
       console.log("connecting wallet");
       initWallet(metamask!);
     } catch (e) {
-      setErrorMsg(ErrorMsg(e));
+      setErrorMessage(ErrorMsg(e));
     }
-  };
+  }, [metamask]);
 
   const effect = useCallback(async () => {
     // Update the default state with a generic URL before we know the actual network through the connected wallet
@@ -122,7 +124,7 @@ export const MetamaskProvider: FC = ({ children }) => {
     setMetamask(provider);      
     registerWalletEvents(browserProvider, provider);
     await initWallet(provider);
-  }, []);
+  }, [metamask]);
 
   useEffect(() => {
     effect();
@@ -131,13 +133,13 @@ export const MetamaskProvider: FC = ({ children }) => {
   return (
     <MetamaskContext.Provider
       value={{
-        metamask,
-        network,
-        userAddress,
-        etherscanUrl,
-        errorMessage,
-        setErrorMsg,
-        connectWallet,
+        metamask: metamask,
+        network: network,
+        userAddress: userAddress,
+        etherscanUrl: etherscanUrl,
+        errorMessage: errorMessage,
+        setErrorMsg: setErrorMsgFn,
+        connectWallet: connectWalletFn
       }}
     >
       {children}

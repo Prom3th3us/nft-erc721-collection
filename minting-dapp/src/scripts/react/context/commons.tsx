@@ -1,5 +1,5 @@
 // @TODO define global context
-
+// @TODO extract error code if any
 export function ErrorMsg(error: any): string | null {
   let msg: string = "Unknown error...";
   if (null === error || typeof error === "string") {
