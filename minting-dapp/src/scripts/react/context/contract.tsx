@@ -1,15 +1,21 @@
-import { createContext, useCallback, useContext, useEffect, useState, FC } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  FC,
+} from "react";
 import { ethers, BigNumber } from "ethers";
 import NftContractType from "../../lib/NftContractType";
 import CollectionConfig from "../../../../../smart-contract/config/CollectionConfig";
 import { useMetamask } from "./metamask";
 import Whitelist from "../../lib/Whitelist";
-import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
-import { ErrorMsg } from "./commons";
+import { Web3Provider } from "@ethersproject/providers";
 
-interface ContractContext {
+interface IContractContext {
   contract: NftContractType | null;
-  address: string;
+  address: string | null;
   totalSupply: number;
   maxSupply: number;
   maxMintAmountPerTx: number;
@@ -17,11 +23,15 @@ interface ContractContext {
   isPaused: boolean;
   isWhitelistMintEnabled: boolean;
   isUserInWhitelist: boolean; // @TODO move into whitelist
+  isContractReady: () => boolean;
+  isSoldOut: () => boolean;
+  mintTokens: (amount: number) => Promise<void>
+  whitelistMintTokens: (amount: number) => Promise<void>
 }
 
-const initialState: ContractContext = {
+const initialState: IContractContext = {
   contract: null,
-  address: CollectionConfig.contractAddress!,
+  address: CollectionConfig.contractAddress,
   totalSupply: 0,
   maxSupply: 0,
   maxMintAmountPerTx: 0,
@@ -29,24 +39,36 @@ const initialState: ContractContext = {
   isPaused: true,
   isWhitelistMintEnabled: false,
   isUserInWhitelist: false,
+  isContractReady: () => false,
+  isSoldOut: () => false,
+  mintTokens: async (_) => {},
+  whitelistMintTokens: async (_) => {},
 };
 
-const ContractContext: React.Context<ContractContext> =
+const ContractContext: React.Context<IContractContext> =
   createContext(initialState);
 
-export const useContract = () => useContext(ContractContext);
+export const useContract = (): IContractContext => {
+  const context = useContext(ContractContext);
+  if (!context) {
+    throw new Error("`useMetamask` should be used within a `MetaMaskProvider`");
+  }
 
-const ContractAbi = require("../../../../../smart-contract/artifacts/contracts/" +
-  CollectionConfig.contractName +
-  ".sol/" +
-  CollectionConfig.contractName +
-  ".json").abi;
+  return context;
+};
 
-export const ContractProvider: FC = ({ children }) => {
+const ContractAbi =
+  require("../../../../../smart-contract/artifacts/contracts/" +
+    CollectionConfig.contractName +
+    ".sol/" +
+    CollectionConfig.contractName +
+    ".json").abi;
+
+const useContractContextValue = (): IContractContext => {
   const { metamask, userAddress, setErrorMsg } = useMetamask();
 
   const [contract, setContract] = useState(initialState.contract);
-  const [address, setAddress] = useState(initialState.address);
+  const [address] = useState(initialState.address);
   const [totalSupply, setTotalSupply] = useState(initialState.totalSupply);
   const [maxSupply, setMaxSupply] = useState(initialState.maxSupply);
   const [maxMintAmountPerTx, setMaxMintAmountPerTx] = useState(
@@ -61,63 +83,108 @@ export const ContractProvider: FC = ({ children }) => {
     initialState.isUserInWhitelist
   );
 
-  const createContract: (p: Web3Provider) => NftContractType =
-    provider => {
-      const contractRef = new ethers.Contract(
-        address,
-        ContractAbi,
-        provider.getSigner()
-      ) as NftContractType;
-  
-      setContract(contractRef);
-      return contractRef;
+  // start-section: api
+  const isContractReady = useCallback((): boolean => {
+    if (!contract) {
+      return false;
+    } else {
+      return contract !== undefined;
     }
+  }, [contract]);
 
-  const effect = useCallback(async (provider: Web3Provider) => {
+  const isSoldOut= useCallback((): boolean => {
+    return maxSupply !== 0 && totalSupply < maxSupply;
+  }, [maxSupply, totalSupply]);
+
+  const mintTokens = useCallback(async (amount: number): Promise<void> => {
     try {
-      if (
-        (await provider.getCode(CollectionConfig.contractAddress!)) === "0x"
-      ) {
+      await contract!.mint(amount, {
+        value: tokenPrice.mul(amount),
+      });
+    } catch (e) {
+      setErrorMsg(e);
+    }
+  }, [contract, tokenPrice, setErrorMsg]);
+
+  const whitelistMintTokens: (n: number) => Promise<void> = useCallback(async (amount) => {
+    try {
+      await contract!.whitelistMint(
+        amount,
+        Whitelist.getProofForAddress(userAddress!),
+        { value: tokenPrice.mul(amount) }
+      );
+    } catch (e) {
+      setErrorMsg(e);
+    }
+  }, [contract, userAddress, tokenPrice, setErrorMsg]);
+  // end-section: api
+
+  // start-section: effects
+  const fetchContractData = useCallback(
+    async (contractRef: NftContractType) => {
+      setMaxSupply((await contractRef.maxSupply()).toNumber());
+      setTotalSupply((await contractRef.totalSupply()).toNumber());
+      setMaxMintAmountPerTx(
+        (await contractRef.maxMintAmountPerTx()).toNumber()
+      );
+      setTokenPrice(await contractRef.cost());
+      setIsPaused(await contractRef.paused());
+      setIsWhitelistMintEnabled(await contractRef.whitelistMintEnabled());
+    },
+    []
+  );
+
+  const connectContract = useCallback(
+    async (provider: Web3Provider, contractAddress: string) => {
+      const notReacheableContract =
+        (await provider.getCode(contractAddress)) === "0x";
+      if (notReacheableContract) {
         setErrorMsg(
           "Could not find the contract, are you connected to the right chain?"
         );
         return;
       }
-      
-      const contractRef = createContract(provider);
-  
-      setMaxSupply((await contractRef.maxSupply()).toNumber());
-      setTotalSupply((await contractRef.totalSupply()).toNumber());
-      setMaxMintAmountPerTx((await contractRef.maxMintAmountPerTx()).toNumber());
-      setTokenPrice(await contractRef.cost());
-      setIsPaused(await contractRef.paused());
-      setIsWhitelistMintEnabled(await contractRef.whitelistMintEnabled());
-      setIsUserInWhitelist(Whitelist.contains(userAddress ?? "")); 
-    } catch (e) {
-      setErrorMsg(ErrorMsg(e));
-    }
-  }, [metamask]);
+
+      const contractRef = new ethers.Contract(
+        contractAddress,
+        ContractAbi,
+        provider.getSigner()
+      ) as NftContractType;
+      setContract(contractRef);
+      fetchContractData(contractRef);
+    },
+    [setErrorMsg, fetchContractData]
+  );
 
   useEffect(() => {
-    if(metamask !== null) {
-      effect(metamask);
+    if (metamask && userAddress && address) {
+      connectContract(metamask, address);
+      setIsUserInWhitelist(Whitelist.contains(userAddress ?? ""));
     }
-  }, [metamask]);
+  }, [metamask, userAddress, address, connectContract]);
+  // end-section: effects
 
+  return {
+    contract,
+    address,
+    totalSupply,
+    maxSupply,
+    maxMintAmountPerTx,
+    tokenPrice,
+    isPaused,
+    isWhitelistMintEnabled,
+    isUserInWhitelist,
+    isContractReady,
+    isSoldOut,
+    mintTokens,
+    whitelistMintTokens
+  };
+};
+
+export const ContractProvider: FC = ({ children }) => {
+  const contractContextValue = useContractContextValue();
   return (
-    <ContractContext.Provider
-      value={{
-        contract,
-        address,
-        totalSupply,
-        maxSupply,
-        maxMintAmountPerTx,
-        tokenPrice,
-        isPaused,
-        isWhitelistMintEnabled,
-        isUserInWhitelist,
-      }}
-    >
+    <ContractContext.Provider value={contractContextValue}>
       {children}
     </ContractContext.Provider>
   );

@@ -79,7 +79,11 @@ export default class Dapp extends React.Component<Props, State> {
             <br />
             But don't worry! <span className="emoji">😃</span> You can always
             interact with the smart-contract through{" "}
-            <a href={defaultState.etherscanUrl} target="_blank">
+            <a
+              href={defaultState.etherscanUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
               Etherscan
             </a>{" "}
             and{" "}
@@ -168,7 +172,7 @@ export default class Dapp extends React.Component<Props, State> {
           <br />
           Your Merkle Proof <strong>has been copied to the clipboard</strong>.
           You can paste it into{" "}
-          <a href={this.state.etherscanUrl} target="_blank">
+          <a href={this.state.etherscanUrl} target="_blank" rel="noreferrer">
             Etherscan
           </a>{" "}
           to claim your tokens.
@@ -337,7 +341,11 @@ export default class Dapp extends React.Component<Props, State> {
                       <span className="emoji">🥳</span>
                     </h2>
                     You can buy from our beloved holders on{" "}
-                    <a href={this.generateOpenSeaUrl()} target="_blank">
+                    <a
+                      href={this.generateOpenSeaUrl()}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       OpenSea
                     </a>
                     .
@@ -392,7 +400,11 @@ export default class Dapp extends React.Component<Props, State> {
                 directly
               </strong>{" "}
               through{" "}
-              <a href={this.state.etherscanUrl} target="_blank">
+              <a
+                href={this.state.etherscanUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Etherscan
               </a>
               , without even connecting your wallet to this DAPP!{" "}

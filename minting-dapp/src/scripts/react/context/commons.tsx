@@ -1,10 +1,8 @@
-// @TODO define global context
-// @TODO extract error code if any
-export function ErrorMsg(error: any): string | null {
-  let msg: string = "Unknown error...";
-  if (null === error || typeof error === "string") {
+export const ErrorMsg = (error: any): string => {
+  let msg;
+  if (typeof error === "string") {
     msg = error;
-  } else if (typeof error === "object") {
+  } else if (typeof error === "object" && error !== null) {
     // Support any type of error from the Web3 Provider...
     if (error?.error?.message !== undefined) {
       msg = error.error.message;
@@ -13,6 +11,8 @@ export function ErrorMsg(error: any): string | null {
     } else if (error?.message !== undefined) {
       msg = error.message;
     }
+  } else {
+    msg = "Unknown error...";
   }
-  return null === msg ? null : msg.charAt(0).toUpperCase() + msg.slice(1);
-}
+  return "" === msg ? "" : msg.charAt(0).toUpperCase() + msg.slice(1);
+};
