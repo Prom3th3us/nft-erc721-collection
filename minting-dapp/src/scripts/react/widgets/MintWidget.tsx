@@ -1,6 +1,6 @@
 import { utils, BigNumber } from "ethers";
 import React from "react";
-import { IBusContext } from "./context/bus";
+import { IBusContext } from "../context/bus";
 
 interface Props {
   bus: IBusContext;

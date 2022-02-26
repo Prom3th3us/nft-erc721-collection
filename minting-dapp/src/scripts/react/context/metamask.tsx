@@ -123,6 +123,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     }
     const provider = new ethers.providers.Web3Provider(_browserProvider);
     setMetamask(provider);
+    console.log("METAMASK CONNECTED");
   }, [bus, etherscanUrl, setErrorMsg, generateEtherscanUrl]);
 
   useEffect(() => {
@@ -133,7 +134,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     (provider: Web3Provider): (() => void) => {
       const onAccountsChanged = async (accounts: string[]) => {
         await bus.publishInfo("Account Changed");
-        connectWallet();
+        await connectWallet();
       };
       // @ts-ignore
       provider.provider.on("accountsChanged", onAccountsChanged);
