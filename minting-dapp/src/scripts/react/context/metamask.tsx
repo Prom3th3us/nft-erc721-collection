@@ -10,8 +10,7 @@ import { ethers } from "ethers";
 import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
 import detectEthereumProvider from "@metamask/detect-provider";
 import CollectionConfig from "../../../../../smart-contract/config/CollectionConfig";
-import { ErrorMsg } from "./commons";
-import { toast } from 'react-toastify'
+import { useBusContext } from "./bus";
 
 interface IMetamaskContext {
   metamask: Web3Provider | null;
@@ -19,7 +18,6 @@ interface IMetamaskContext {
   userAddress: string | null;
   etherscanUrl: string;
   errorMessage: string | JSX.Element | null; // @TODO move to common/global ctx
-  setErrorMsg: (s: string | JSX.Element | any) => void;
   connectWallet: () => Promise<void>;
   isWalletConnected: () => boolean;
 }
@@ -30,9 +28,8 @@ const initialState: IMetamaskContext = {
   userAddress: null,
   etherscanUrl: "",
   errorMessage: null,
-  setErrorMsg: (_) => {},
   connectWallet: async () => {},
-  isWalletConnected: () => false
+  isWalletConnected: () => false,
 };
 
 const MetamaskContext: React.Context<IMetamaskContext> =
@@ -48,6 +45,8 @@ export const useMetamask = (): IMetamaskContext => {
 };
 
 const useMetamaskContextValue = (): IMetamaskContext => {
+  const bus = useBusContext();
+
   const [metamask, setMetamask] = useState(initialState.metamask);
   const [network, setNetwork] = useState(initialState.network);
   const [userAddress, setUserAddress] = useState(initialState.userAddress);
@@ -61,7 +60,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     }.etherscan.io/address/${CollectionConfig.contractAddress}`;
   }, [network]);
 
-  const initWallet = useCallback(async (): Promise<void> => {
+  const connectWallet = useCallback(async (): Promise<void> => {
     if (metamask && metamask.provider.request) {
       await metamask.provider.request({ method: "eth_requestAccounts" });
       const walletAccounts = await metamask.listAccounts();
@@ -72,37 +71,69 @@ const useMetamaskContextValue = (): IMetamaskContext => {
       }
     }
   }, [metamask, generateEtherscanUrl]);
+
+  const setErrorMsg = useCallback(
+    (s: string | JSX.Element | null | any = null): void => {
+      setErrorMessage(s);
+    },
+    []
+  );
   // end-section: helpers
 
   // start-section: api
-  const setErrorMsg = useCallback(
-    (s: string | JSX.Element | null | any = null): void => {
-      const errorMessage = ErrorMsg(s);
-      toast.error(errorMessage, { position: toast.POSITION.TOP_RIGHT })
-      setErrorMessage(errorMessage)
-    }, []
-  );
-
-  const connectWallet = useCallback(async (): Promise<void> => {
-    try {
-      await initWallet();
-      toast.success("CONNECTED", { position: toast.POSITION.TOP_RIGHT });
-    } catch (e) {
-      setErrorMsg(e);
-    }
-  }, [initWallet, setErrorMsg]);
-
-  //@WIP
   const isWalletConnected = useCallback((): boolean => {
     return userAddress !== null;
   }, [userAddress]);
   // end-section: api
 
   // start-section: effects
+  const connectMetamask = useCallback(async () => {
+    // Update the default state with a generic URL before we know the actual network through the connected wallet
+    setEtherscanUrl(generateEtherscanUrl());
+
+    const _browserProvider =
+      (await detectEthereumProvider()) as ExternalProvider;
+
+    if (_browserProvider?.isMetaMask !== true) {
+      const errorMsg = (
+        <>
+          We were not able to detect <strong>MetaMask</strong>. We value{" "}
+          <strong>privacy and security</strong> a lot so we limit the wallet
+          options on the DAPP.
+          <br />
+          <br />
+          But don't worry! <span className="emoji">😃</span> You can always
+          interact with the smart-contract through{" "}
+          <a href={etherscanUrl} target="_blank" rel="noreferrer">
+            Etherscan
+          </a>{" "}
+          and{" "}
+          <strong>
+            we do our best to provide you with the best user experience possible
+          </strong>
+          , even from there.
+          <br />
+          <br />
+          You can also get your <strong>Whitelist Proof</strong> manually, using
+          the tool below.
+        </>
+      );
+      setErrorMsg(errorMsg);
+      await bus.publishError(errorMsg);
+    }
+    const provider = new ethers.providers.Web3Provider(_browserProvider);
+    setMetamask(provider);
+  }, [bus, etherscanUrl, setErrorMsg, generateEtherscanUrl]);
+
+  useEffect(() => {
+    connectMetamask();
+  }, [connectMetamask]);
+
   const registerOnAccountsChanged = useCallback(
     (provider: Web3Provider): (() => void) => {
-      const onAccountsChanged = (accounts: string[]) => {
-        initWallet();
+      const onAccountsChanged = async (accounts: string[]) => {
+        await bus.publishInfo("Account Changed");
+        connectWallet();
       };
       // @ts-ignore
       provider.provider.on("accountsChanged", onAccountsChanged);
@@ -111,7 +142,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
         provider.provider.removeListener("accountsChanged", onAccountsChanged);
       };
     },
-    [initWallet]
+    [bus, connectWallet]
   );
 
   useEffect(() => {
@@ -171,8 +202,9 @@ const useMetamaskContextValue = (): IMetamaskContext => {
 
   const registerOnDisconnect = useCallback(
     (provider: Web3Provider): (() => void) => {
-      const onDisconnect = (error: any) => {
+      const onDisconnect = async (error: any) => {
         console.error("METAMASK DISCONNECTED: ", error);
+        await bus.publishError("Account Changed");
         setErrorMsg(error);
       };
       // @ts-ignore
@@ -182,7 +214,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
         provider.provider.removeListener("disconnect", onDisconnect);
       };
     },
-    [setErrorMsg]
+    [bus, setErrorMsg]
   );
 
   useEffect(() => {
@@ -192,46 +224,6 @@ const useMetamaskContextValue = (): IMetamaskContext => {
       return () => {};
     }
   }, [metamask, registerOnDisconnect]);
-
-  const connectMetamask = useCallback(async () => {
-    // Update the default state with a generic URL before we know the actual network through the connected wallet
-    setEtherscanUrl(generateEtherscanUrl());
-
-    const _browserProvider =
-      (await detectEthereumProvider()) as ExternalProvider;
-
-    if (_browserProvider?.isMetaMask !== true) {
-      setErrorMsg(
-        <>
-          We were not able to detect <strong>MetaMask</strong>. We value{" "}
-          <strong>privacy and security</strong> a lot so we limit the wallet
-          options on the DAPP.
-          <br />
-          <br />
-          But don't worry! <span className="emoji">😃</span> You can always
-          interact with the smart-contract through{" "}
-          <a href={etherscanUrl} target="_blank" rel="noreferrer">
-            Etherscan
-          </a>{" "}
-          and{" "}
-          <strong>
-            we do our best to provide you with the best user experience possible
-          </strong>
-          , even from there.
-          <br />
-          <br />
-          You can also get your <strong>Whitelist Proof</strong> manually, using
-          the tool below.
-        </>
-      );
-    }
-    const provider = new ethers.providers.Web3Provider(_browserProvider);
-    setMetamask(provider);
-  }, [etherscanUrl, setErrorMsg, generateEtherscanUrl]);
-
-  useEffect(() => {
-    connectMetamask();
-  }, [connectMetamask]);
   // end-section: effects
 
   return {
@@ -240,9 +232,8 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     userAddress,
     etherscanUrl,
     errorMessage,
-    setErrorMsg,
     connectWallet,
-    isWalletConnected
+    isWalletConnected,
   };
 };
 

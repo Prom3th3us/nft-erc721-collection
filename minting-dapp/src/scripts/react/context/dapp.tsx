@@ -3,17 +3,18 @@ import { useMetamask } from "./metamask";
 import CollectionStatus from "../CollectionStatus";
 import MintWidget from "../MintWidget";
 import CollectionConfig from "../../../../../smart-contract/config/CollectionConfig";
+import { useBusContext } from "./bus";
 
 export default function App() {
+  const bus = useBusContext();
+
   const {
     metamask,
     network,
     userAddress,
     etherscanUrl,
-    // errorMessage,
-    // setErrorMsg,
     connectWallet,
-    isWalletConnected
+    isWalletConnected,
   } = useMetamask();
   const {
     tokenPrice,
@@ -26,7 +27,7 @@ export default function App() {
     isContractReady,
     isSoldOut,
     mintTokens,
-    whitelistMintTokens
+    whitelistMintTokens,
   } = useContract();
 
   const generateOpenSeaUrl: () => string = () => {
@@ -55,12 +56,13 @@ export default function App() {
         </div>
       ) : null}
 
-      {/* {errorMessage ? (
+      {/* { errorMessage ? (
         <div className="error">
           <p>{errorMessage}</p>
-          <button onClick={() => setErrorMsg("")}>Close</button>
+          <button onClick={() => {
+         }}>Close</button>
         </div>
-      ) : null} */}
+      ) : null } */}
 
       {isWalletConnected() ? (
         <>
@@ -76,6 +78,7 @@ export default function App() {
               />
               {totalSupply < maxSupply ? (
                 <MintWidget
+                  bus={bus}
                   maxSupply={maxSupply}
                   totalSupply={totalSupply}
                   tokenPrice={tokenPrice}
@@ -140,7 +143,14 @@ export default function App() {
             <button
               className="primary"
               disabled={metamask === undefined}
-              onClick={() => connectWallet()}
+              onClick={async () => {
+                try {
+                  await connectWallet();
+                  await bus.publishSuccess("CONNECTED");
+                } catch (e) {
+                  await bus.publishError(e);
+                }
+              }}
             >
               Connect Wallet
             </button>
@@ -161,7 +171,7 @@ export default function App() {
             <span className="emoji">🚀</span>
             <br />
             <br />
-            Keep safe! <span className="emoji">❤️</span>
+            <span className="emoji">❤️</span>
           </div>
         </div>
       ) : null}

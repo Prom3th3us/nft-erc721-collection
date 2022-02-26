@@ -12,6 +12,7 @@ import CollectionConfig from "../../../../../smart-contract/config/CollectionCon
 import { useMetamask } from "./metamask";
 import Whitelist from "../../lib/Whitelist";
 import { Web3Provider } from "@ethersproject/providers";
+import { useBusContext } from "./bus";
 
 interface IContractContext {
   contract: NftContractType | null;
@@ -25,8 +26,8 @@ interface IContractContext {
   isUserInWhitelist: boolean; // @TODO move into whitelist
   isContractReady: () => boolean;
   isSoldOut: () => boolean;
-  mintTokens: (amount: number) => Promise<void>
-  whitelistMintTokens: (amount: number) => Promise<void>
+  mintTokens: (amount: number) => Promise<void>;
+  whitelistMintTokens: (amount: number) => Promise<void>;
 }
 
 const initialState: IContractContext = {
@@ -65,7 +66,8 @@ const ContractAbi =
     ".json").abi;
 
 const useContractContextValue = (): IContractContext => {
-  const { metamask, userAddress, setErrorMsg } = useMetamask();
+  const bus = useBusContext();
+  const { metamask, userAddress } = useMetamask();
 
   const [contract, setContract] = useState(initialState.contract);
   const [address] = useState(initialState.address);
@@ -92,31 +94,29 @@ const useContractContextValue = (): IContractContext => {
     }
   }, [contract]);
 
-  const isSoldOut= useCallback((): boolean => {
+  const isSoldOut = useCallback((): boolean => {
     return maxSupply !== 0 && totalSupply < maxSupply;
   }, [maxSupply, totalSupply]);
 
-  const mintTokens = useCallback(async (amount: number): Promise<void> => {
-    try {
+  const mintTokens = useCallback(
+    async (amount: number): Promise<void> => {
       await contract!.mint(amount, {
         value: tokenPrice.mul(amount),
       });
-    } catch (e) {
-      setErrorMsg(e);
-    }
-  }, [contract, tokenPrice, setErrorMsg]);
+    },
+    [contract, tokenPrice]
+  );
 
-  const whitelistMintTokens: (n: number) => Promise<void> = useCallback(async (amount) => {
-    try {
+  const whitelistMintTokens: (n: number) => Promise<void> = useCallback(
+    async (amount) => {
       await contract!.whitelistMint(
         amount,
         Whitelist.getProofForAddress(userAddress!),
         { value: tokenPrice.mul(amount) }
       );
-    } catch (e) {
-      setErrorMsg(e);
-    }
-  }, [contract, userAddress, tokenPrice, setErrorMsg]);
+    },
+    [contract, userAddress, tokenPrice]
+  );
   // end-section: api
 
   // start-section: effects
@@ -139,7 +139,7 @@ const useContractContextValue = (): IContractContext => {
       const notReacheableContract =
         (await provider.getCode(contractAddress)) === "0x";
       if (notReacheableContract) {
-        setErrorMsg(
+        await bus.publishError(
           "Could not find the contract, are you connected to the right chain?"
         );
         return;
@@ -154,7 +154,7 @@ const useContractContextValue = (): IContractContext => {
       setContract(contractRef);
       fetchContractData(contractRef);
     },
-    [setErrorMsg, fetchContractData]
+    [bus, fetchContractData]
   );
 
   useEffect(() => {
@@ -178,7 +178,7 @@ const useContractContextValue = (): IContractContext => {
     isContractReady,
     isSoldOut,
     mintTokens,
-    whitelistMintTokens
+    whitelistMintTokens,
   };
 };
 

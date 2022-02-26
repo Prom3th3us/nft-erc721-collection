@@ -7,6 +7,7 @@ import CollectionConfig from "../../../../smart-contract/config/CollectionConfig
 import CollectionStatus from "./CollectionStatus";
 import MintWidget from "./MintWidget";
 import Whitelist from "../lib/Whitelist";
+import { IBusContext } from "./context/bus";
 
 const ContractAbi = require("../../../../smart-contract/artifacts/contracts/" +
   CollectionConfig.contractName +
@@ -322,6 +323,7 @@ export default class Dapp extends React.Component<Props, State> {
                 />
                 {this.state.totalSupply < this.state.maxSupply ? (
                   <MintWidget
+                    bus={{} as IBusContext}
                     maxSupply={this.state.maxSupply}
                     totalSupply={this.state.totalSupply}
                     tokenPrice={this.state.tokenPrice}

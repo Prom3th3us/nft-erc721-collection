@@ -2,21 +2,24 @@ import "../styles/main.scss";
 
 import ReactDOM from "react-dom";
 import App from "./react/context/dapp";
-// import Dapp from "./react/Dapp";
 import { ContractProvider } from "./react/context/contract";
 import { MetamaskProvider } from "./react/context/metamask";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { BusContextProvider } from "./react/context/bus";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+// import Dapp from "./react/Dapp";
 
 document.addEventListener("DOMContentLoaded", async () => {
   ReactDOM.render(
     // <Dapp />,
-    <MetamaskProvider>
-      <ContractProvider>
+    <BusContextProvider>
+      <MetamaskProvider>
+        <ContractProvider>
           <App />
           <ToastContainer />
-      </ContractProvider>
-    </MetamaskProvider>,
+        </ContractProvider>
+      </MetamaskProvider>
+    </BusContextProvider>,
     document.getElementById("minting-dapp")
   );
 });

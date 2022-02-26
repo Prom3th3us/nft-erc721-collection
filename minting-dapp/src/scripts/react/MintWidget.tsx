@@ -1,7 +1,9 @@
 import { utils, BigNumber } from "ethers";
 import React from "react";
+import { IBusContext } from "./context/bus";
 
 interface Props {
+  bus: IBusContext;
   maxSupply: number;
   totalSupply: number;
   tokenPrice: BigNumber;
@@ -52,13 +54,16 @@ export default class MintWidget extends React.Component<Props, State> {
   }
 
   private async mint(): Promise<void> {
-    if (!this.props.isPaused) {
-      await this.props.mintTokens(this.state.mintAmount);
-
-      return;
+    try {
+      if (!this.props.isPaused) {
+        await this.props.mintTokens(this.state.mintAmount);
+        return;
+      }
+      await this.props.whitelistMintTokens(this.state.mintAmount);
+      await this.props.bus.publishSuccess("Minting in progress");
+    } catch (e) {
+      await this.props.bus.publishError(e);
     }
-
-    await this.props.whitelistMintTokens(this.state.mintAmount);
   }
 
   render() {
