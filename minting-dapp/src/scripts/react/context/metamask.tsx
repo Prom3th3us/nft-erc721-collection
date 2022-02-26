@@ -60,17 +60,23 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     }.etherscan.io/address/${CollectionConfig.contractAddress}`;
   }, [network]);
 
-  const connectWallet = useCallback(async (): Promise<void> => {
+  const initWallet = useCallback(async (): Promise<void> => {
+    setUserAddress(null);
     if (metamask && metamask.provider.request) {
-      await metamask.provider.request({ method: "eth_requestAccounts" });
       const walletAccounts = await metamask.listAccounts();
       if (walletAccounts.length > 0) {
-        setUserAddress(walletAccounts[0]);
-        setNetwork(await metamask.getNetwork());
+        setUserAddress(await metamask.getSigner().getAddress());
         setEtherscanUrl(generateEtherscanUrl());
       }
     }
   }, [metamask, generateEtherscanUrl]);
+
+  const connectWallet = useCallback(async (): Promise<void> => {
+    if (metamask && metamask.provider.request) {
+      await metamask.provider.request({ method: "eth_requestAccounts" });
+      await initWallet();
+    }
+  }, [metamask, initWallet]);
 
   const setErrorMsg = useCallback(
     (s: string | JSX.Element | null | any = null): void => {
@@ -123,18 +129,22 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     }
     const provider = new ethers.providers.Web3Provider(_browserProvider);
     setMetamask(provider);
-    console.log("METAMASK CONNECTED");
+    setNetwork(await provider.getNetwork());
   }, [bus, etherscanUrl, setErrorMsg, generateEtherscanUrl]);
 
   useEffect(() => {
-    connectMetamask();
-  }, [connectMetamask]);
+    if (!metamask) connectMetamask();
+  }, [metamask, connectMetamask]);
 
   const registerOnAccountsChanged = useCallback(
     (provider: Web3Provider): (() => void) => {
       const onAccountsChanged = async (accounts: string[]) => {
-        await bus.publishInfo("Account Changed");
-        await connectWallet();
+        try {
+          await bus.publishInfo("Account Changed");
+          await initWallet();
+        } catch (e) {
+          console.error("onAccountsChanged", e); //@TODO CHECK if can remove try-catch
+        }
       };
       // @ts-ignore
       provider.provider.on("accountsChanged", onAccountsChanged);
@@ -143,7 +153,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
         provider.provider.removeListener("accountsChanged", onAccountsChanged);
       };
     },
-    [bus, connectWallet]
+    [bus, initWallet]
   );
 
   useEffect(() => {
@@ -180,7 +190,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
   const registerOnConnect = useCallback(
     (provider: Web3Provider): (() => void) => {
       const onConnect = (chainId: string) => {
-        console.log("METAMASK ALREADY CONNECTED");
+        // console.log("METAMASK ALREADY CONNECTED");
         // initWallet(); // @TODO add if we want to autologin on page refresh
       };
       // @ts-ignore
@@ -204,8 +214,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
   const registerOnDisconnect = useCallback(
     (provider: Web3Provider): (() => void) => {
       const onDisconnect = async (error: any) => {
-        console.error("METAMASK DISCONNECTED: ", error);
-        await bus.publishError("Account Changed");
+        await bus.publishError("METAMASK DISCONNECTED");
         setErrorMsg(error);
       };
       // @ts-ignore

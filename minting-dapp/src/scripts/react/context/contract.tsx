@@ -152,7 +152,7 @@ const useContractContextValue = (): IContractContext => {
       ) as NftContractType;
 
       setContract(contractRef);
-      fetchContractData(contractRef);
+      await fetchContractData(contractRef);
     },
     [bus, fetchContractData]
   );
