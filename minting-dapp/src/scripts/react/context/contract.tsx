@@ -150,6 +150,7 @@ const useContractContextValue = (): IContractContext => {
         ContractAbi,
         provider.getSigner()
       ) as NftContractType;
+
       setContract(contractRef);
       fetchContractData(contractRef);
     },

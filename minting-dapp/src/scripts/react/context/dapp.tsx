@@ -10,8 +10,8 @@ export default function App() {
     network,
     userAddress,
     etherscanUrl,
-    errorMessage,
-    setErrorMsg,
+    // errorMessage,
+    // setErrorMsg,
     connectWallet,
     isWalletConnected
   } = useMetamask();
@@ -55,12 +55,12 @@ export default function App() {
         </div>
       ) : null}
 
-      {errorMessage ? (
+      {/* {errorMessage ? (
         <div className="error">
           <p>{errorMessage}</p>
           <button onClick={() => setErrorMsg("")}>Close</button>
         </div>
-      ) : null}
+      ) : null} */}
 
       {isWalletConnected() ? (
         <>

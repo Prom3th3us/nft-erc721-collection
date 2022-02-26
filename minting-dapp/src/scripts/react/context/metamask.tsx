@@ -11,6 +11,7 @@ import { ExternalProvider, Web3Provider } from "@ethersproject/providers";
 import detectEthereumProvider from "@metamask/detect-provider";
 import CollectionConfig from "../../../../../smart-contract/config/CollectionConfig";
 import { ErrorMsg } from "./commons";
+import { toast } from 'react-toastify'
 
 interface IMetamaskContext {
   metamask: Web3Provider | null;
@@ -75,14 +76,17 @@ const useMetamaskContextValue = (): IMetamaskContext => {
 
   // start-section: api
   const setErrorMsg = useCallback(
-    (s: string | JSX.Element | null | any = null): void =>
-      setErrorMessage(ErrorMsg(s)),
-    []
+    (s: string | JSX.Element | null | any = null): void => {
+      const errorMessage = ErrorMsg(s);
+      toast.error(errorMessage, { position: toast.POSITION.TOP_RIGHT })
+      setErrorMessage(errorMessage)
+    }, []
   );
 
   const connectWallet = useCallback(async (): Promise<void> => {
     try {
       await initWallet();
+      toast.success("CONNECTED", { position: toast.POSITION.TOP_RIGHT });
     } catch (e) {
       setErrorMsg(e);
     }
