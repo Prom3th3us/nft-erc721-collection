@@ -65,7 +65,8 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     if (metamask && metamask.provider.request) {
       const walletAccounts = await metamask.listAccounts();
       if (walletAccounts.length > 0) {
-        setUserAddress(await metamask.getSigner().getAddress());
+        // setUserAddress(await metamask.getSigner().getAddress());
+        setUserAddress(walletAccounts[0]);
         setEtherscanUrl(generateEtherscanUrl());
       }
     }
@@ -128,6 +129,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
       await bus.publishError(errorMsg);
     }
     const provider = new ethers.providers.Web3Provider(_browserProvider);
+    provider.pollingInterval = 1000;
     setMetamask(provider);
     setNetwork(await provider.getNetwork());
   }, [bus, etherscanUrl, setErrorMsg, generateEtherscanUrl]);
@@ -140,10 +142,14 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     (provider: Web3Provider): (() => void) => {
       const onAccountsChanged = async (accounts: string[]) => {
         try {
-          await bus.publishInfo("Account Changed");
+          await provider.getSigner().getAddress();
+          if (userAddress) {
+            await bus.publishInfo("Account Changed");
+          }
           await initWallet();
         } catch (e) {
-          console.error("onAccountsChanged", e); //@TODO CHECK if can remove try-catch
+          setUserAddress(null);
+          await bus.publishInfo("Account Disconected");
         }
       };
       // @ts-ignore
@@ -153,7 +159,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
         provider.provider.removeListener("accountsChanged", onAccountsChanged);
       };
     },
-    [bus, initWallet]
+    [bus, userAddress, initWallet]
   );
 
   useEffect(() => {
