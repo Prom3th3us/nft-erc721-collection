@@ -25,7 +25,6 @@ export default function App() {
     maxMintAmountPerTx,
     isPaused,
     isWhitelistMintEnabled,
-    isUserInWhitelist,
     isContractReady,
     isSoldOut,
     mintTokens,
@@ -68,21 +67,20 @@ export default function App() {
                 totalSupply={totalSupply}
                 isPaused={isPaused}
                 isWhitelistMintEnabled={isWhitelistMintEnabled}
-                isUserInWhitelist={isUserInWhitelist}
               />
               {totalSupply < maxSupply ? (
                 <MintWidget
                   bus={bus}
+                  userAddress={userAddress}
                   maxSupply={maxSupply}
                   totalSupply={totalSupply}
                   tokenPrice={tokenPrice}
                   maxMintAmountPerTx={maxMintAmountPerTx}
                   isPaused={isPaused}
                   isWhitelistMintEnabled={isWhitelistMintEnabled}
-                  isUserInWhitelist={isUserInWhitelist}
                   mintTokens={(mintAmount) => mintTokens(mintAmount)}
-                  whitelistMintTokens={(mintAmount) =>
-                    whitelistMintTokens(mintAmount)
+                  whitelistMintTokens={(mintAmount, proof) =>
+                    whitelistMintTokens(mintAmount, proof)
                   }
                 />
               ) : (

@@ -6,7 +6,6 @@ interface Props {
   maxSupply: number;
   isPaused: boolean;
   isWhitelistMintEnabled: boolean;
-  isUserInWhitelist: boolean;
 }
 
 interface State {}

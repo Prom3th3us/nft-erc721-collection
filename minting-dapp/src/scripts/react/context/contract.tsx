@@ -10,7 +10,6 @@ import { ethers, BigNumber } from "ethers";
 import NftContractType from "../../lib/NftContractType";
 import CollectionConfig from "../../../../../smart-contract/config/CollectionConfig";
 import { useMetamask } from "./metamask";
-import Whitelist from "../../lib/Whitelist";
 import { Web3Provider } from "@ethersproject/providers";
 import { useBusContext } from "./bus";
 
@@ -23,11 +22,10 @@ interface IContractContext {
   tokenPrice: BigNumber;
   isPaused: boolean;
   isWhitelistMintEnabled: boolean;
-  isUserInWhitelist: boolean; // @TODO move into whitelist
   isContractReady: () => boolean;
   isSoldOut: () => boolean;
   mintTokens: (amount: number) => Promise<void>;
-  whitelistMintTokens: (amount: number) => Promise<void>;
+  whitelistMintTokens: (amount: number, proof: string[]) => Promise<void>;
 }
 
 const initialState: IContractContext = {
@@ -39,7 +37,6 @@ const initialState: IContractContext = {
   tokenPrice: BigNumber.from(0),
   isPaused: true,
   isWhitelistMintEnabled: false,
-  isUserInWhitelist: false,
   isContractReady: () => false,
   isSoldOut: () => false,
   mintTokens: async (_) => {},
@@ -81,9 +78,6 @@ const useContractContextValue = (): IContractContext => {
   const [isWhitelistMintEnabled, setIsWhitelistMintEnabled] = useState(
     initialState.isWhitelistMintEnabled
   );
-  const [isUserInWhitelist, setIsUserInWhitelist] = useState(
-    initialState.isUserInWhitelist
-  );
 
   // start-section: api
   const isContractReady = useCallback((): boolean => {
@@ -107,15 +101,15 @@ const useContractContextValue = (): IContractContext => {
     [contract, tokenPrice]
   );
 
-  const whitelistMintTokens: (n: number) => Promise<void> = useCallback(
-    async (amount) => {
+  const whitelistMintTokens = useCallback(
+    async (amount: number, proof: string[]): Promise<void> => {
       await contract!.whitelistMint(
         amount,
-        Whitelist.getProofForAddress(userAddress!),
+        proof,
         { value: tokenPrice.mul(amount) }
       );
     },
-    [contract, userAddress, tokenPrice]
+    [contract, tokenPrice]
   );
   // end-section: api
 
@@ -160,7 +154,6 @@ const useContractContextValue = (): IContractContext => {
   useEffect(() => {
     if (metamask && userAddress && address) {
       connectContract(metamask, address);
-      setIsUserInWhitelist(Whitelist.contains(userAddress ?? ""));
     }
   }, [metamask, userAddress, address, connectContract]);
   // end-section: effects
@@ -174,7 +167,6 @@ const useContractContextValue = (): IContractContext => {
     tokenPrice,
     isPaused,
     isWhitelistMintEnabled,
-    isUserInWhitelist,
     isContractReady,
     isSoldOut,
     mintTokens,

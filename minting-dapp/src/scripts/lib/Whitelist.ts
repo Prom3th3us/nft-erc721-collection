@@ -35,4 +35,8 @@ export default new (class Whitelist {
             ) >= 0
         );
     }
+
+    public isUserInWhitelist(address: string): boolean {
+        return this.contains(address ?? "");
+    }
 })();

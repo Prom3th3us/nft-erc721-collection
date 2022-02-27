@@ -1,18 +1,19 @@
 import { utils, BigNumber } from "ethers";
 import React from "react";
+import Whitelist from "../../lib/Whitelist";
 import { IBusContext } from "../context/bus";
 
 interface Props {
   bus: IBusContext;
+  userAddress: string | null;
   maxSupply: number;
   totalSupply: number;
   tokenPrice: BigNumber;
   maxMintAmountPerTx: number;
   isPaused: boolean;
   isWhitelistMintEnabled: boolean;
-  isUserInWhitelist: boolean;
   mintTokens(mintAmount: number): Promise<void>;
-  whitelistMintTokens(mintAmount: number): Promise<void>;
+  whitelistMintTokens(mintAmount: number, proof: string[]): Promise<void>;
 }
 
 interface State {
@@ -35,7 +36,9 @@ export default class MintWidget extends React.Component<Props, State> {
   }
 
   private canWhitelistMint(): boolean {
-    return this.props.isWhitelistMintEnabled && this.props.isUserInWhitelist;
+    return this.props.isWhitelistMintEnabled 
+      && this.props.userAddress !== null
+      && Whitelist.isUserInWhitelist(this.props.userAddress);
   }
 
   private incrementMintAmount(): void {
@@ -59,8 +62,9 @@ export default class MintWidget extends React.Component<Props, State> {
         await this.props.mintTokens(this.state.mintAmount);
         return;
       }
-      await this.props.whitelistMintTokens(this.state.mintAmount);
-      await this.props.bus.publishSuccess("Minting in progress");
+      const proof = Whitelist.getProofForAddress(this.props.userAddress!);
+      await this.props.whitelistMintTokens(this.state.mintAmount, proof);
+      // await this.props.bus.publishSuccess("Minting in progress");
     } catch (e) {
       await this.props.bus.publishError(e);
     }
