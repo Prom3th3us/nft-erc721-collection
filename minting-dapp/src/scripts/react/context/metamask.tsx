@@ -60,8 +60,11 @@ const useMetamaskContextValue = (): IMetamaskContext => {
     }.etherscan.io/address/${CollectionConfig.contractAddress}`;
   }, [network]);
 
-  const initWallet = useCallback(async (): Promise<void> => {
+  const disconnectWallet = useCallback((): void => {
     setUserAddress(null);
+  }, []);
+
+  const initWallet = useCallback(async (): Promise<void> => {
     if (metamask && metamask.provider.request) {
       const walletAccounts = await metamask.listAccounts();
       if (walletAccounts.length > 0) {
@@ -141,14 +144,17 @@ const useMetamaskContextValue = (): IMetamaskContext => {
   const registerOnAccountsChanged = useCallback(
     (provider: Web3Provider): (() => void) => {
       const onAccountsChanged = async (accounts: string[]) => {
+        disconnectWallet();
         try {
+          // check if wallet still connected
           await provider.getSigner().getAddress();
           if (userAddress) {
+            // publish account change if  userAddress still exists
             await bus.publishInfo("Account Changed");
           }
           await initWallet();
         } catch (e) {
-          setUserAddress(null);
+          // thrown by provider signer getAddress
           await bus.publishInfo("Account Disconected");
         }
       };
@@ -159,7 +165,7 @@ const useMetamaskContextValue = (): IMetamaskContext => {
         provider.provider.removeListener("accountsChanged", onAccountsChanged);
       };
     },
-    [bus, userAddress, initWallet]
+    [bus, userAddress, initWallet, disconnectWallet]
   );
 
   useEffect(() => {
