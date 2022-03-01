@@ -103,31 +103,15 @@ const useContractContextValue = (): IContractContext => {
 
   const whitelistMintTokens = useCallback(
     async (amount: number, proof: string[]): Promise<void> => {
-      await contract!.whitelistMint(
-        amount,
-        proof,
-        { value: tokenPrice.mul(amount) }
-      );
+      await contract!.whitelistMint(amount, proof, {
+        value: tokenPrice.mul(amount),
+      });
     },
     [contract, tokenPrice]
   );
   // end-section: api
 
   // start-section: effects
-  const fetchContractData = useCallback(
-    async (contractRef: NftContractType) => {
-      setMaxSupply((await contractRef.maxSupply()).toNumber());
-      setTotalSupply((await contractRef.totalSupply()).toNumber());
-      setMaxMintAmountPerTx(
-        (await contractRef.maxMintAmountPerTx()).toNumber()
-      );
-      setTokenPrice(await contractRef.cost());
-      setIsPaused(await contractRef.paused());
-      setIsWhitelistMintEnabled(await contractRef.whitelistMintEnabled());
-    },
-    []
-  );
-
   const connectContract = useCallback(
     async (provider: Web3Provider, contractAddress: string) => {
       const notReacheableContract =
@@ -146,9 +130,22 @@ const useContractContextValue = (): IContractContext => {
       ) as NftContractType;
 
       setContract(contractRef);
-      await fetchContractData(contractRef);
     },
-    [bus, fetchContractData]
+    [bus]
+  );
+
+  const fetchContractData = useCallback(
+    async (contractRef: NftContractType) => {
+      setMaxSupply((await contractRef.maxSupply()).toNumber());
+      setTotalSupply((await contractRef.totalSupply()).toNumber());
+      setMaxMintAmountPerTx(
+        (await contractRef.maxMintAmountPerTx()).toNumber()
+      );
+      setTokenPrice(await contractRef.cost());
+      setIsPaused(await contractRef.paused());
+      setIsWhitelistMintEnabled(await contractRef.whitelistMintEnabled());
+    },
+    []
   );
 
   useEffect(() => {
@@ -156,6 +153,12 @@ const useContractContextValue = (): IContractContext => {
       connectContract(metamask, address);
     }
   }, [metamask, userAddress, address, connectContract]);
+
+  useEffect(() => {
+    if (metamask && userAddress && contract) {
+      fetchContractData(contract);
+    }
+  }, [metamask, userAddress, contract, fetchContractData]);
   // end-section: effects
 
   return {

@@ -36,9 +36,11 @@ export default class MintWidget extends React.Component<Props, State> {
   }
 
   private canWhitelistMint(): boolean {
-    return this.props.isWhitelistMintEnabled 
-      && this.props.userAddress !== null
-      && Whitelist.isUserInWhitelist(this.props.userAddress);
+    return (
+      this.props.isWhitelistMintEnabled &&
+      this.props.userAddress !== null &&
+      Whitelist.isUserInWhitelist(this.props.userAddress)
+    );
   }
 
   private incrementMintAmount(): void {
